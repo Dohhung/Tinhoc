@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Học Tin học Lớp 10-12</title>
+    
+    <!-- Tích hợp Tailwind CSS để tạo giao diện -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tích hợp thư viện icon Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Tích hợp CodeMirror cho trình soạn thảo code Python -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
+
+    <!-- Tích hợp D3.js cho trực quan hóa -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* CSS tùy chỉnh */
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* slate-100 */
+        }
+        .CodeMirror {
+            height: auto;
+            border-radius: 0.5rem;
+            font-size: 14px;
+        }
+        .header-link {
+            transition: color 0.2s ease;
+        }
+        .header-link.active {
+            color: #4f46e5; /* indigo-600 */
+            font-weight: 600;
+        }
+        .sidebar-link {
+            transition: all 0.2s ease;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: #eef2ff; /* indigo-50 */
+            color: #4338ca; /* indigo-700 */
+            transform: translateX(4px);
+        }
+        .content-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem;
+        }
+        .feature-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        /* Tùy chỉnh cho D3 visualization */
+        .binary-step { display: flex; align-items: center; margin-bottom: 0.5rem; font-family: monospace; font-size: 1.1rem; }
+        .binary-remainder { font-weight: bold; color: #4f46e5; }
+        .audio-wave { stroke-width: 2px; }
+        .sampling-line { stroke: #fb923c; stroke-dasharray: 2,2; }
+        .quantized-step { stroke: #ef4444; stroke-width: 2.5px; fill: none; }
+        .content-card ul { list-style-type: disc; padding-left: 1.5rem; }
+        .content-card li { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body class="antialiased text-slate-800">
+    <div class="relative min-h-screen md:flex">
+        <!-- Lớp phủ cho sidebar trên mobile -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-20 hidden md:hidden"></div>
+
+        <!-- Sidebar (Nội dung động) -->
+        <aside id="sidebar" class="fixed top-0 left-0 w-64 h-full bg-white shadow-lg p-4 transition-transform duration-300 -translate-x-full z-30 md:relative md:translate-x-0 md:flex-shrink-0 overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="sidebar-title" class="text-lg font-bold text-gray-800 px-2"></h2>
+                <button id="sidebar-close" class="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <nav id="sidebar-menu" class="space-y-1">
+                <!-- Các mục menu phụ sẽ được thêm bằng JS -->
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="bg-white shadow-sm flex items-center p-4 justify-between flex-shrink-0">
+                <div class="flex items-center">
+                    <button id="menu-toggle" class="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100 mr-2">
+                         <i data-lucide="menu"></i>
+                    </button>
+                    <a href="#home" onclick="handleHashChange()" class="flex items-center space-x-3">
+                        <div class="p-2 bg-indigo-600 rounded-lg text-white">
+                            <i data-lucide="code-xml"></i>
+                        </div>
+                        <h1 class="text-xl font-bold text-gray-800 hidden md:block">Học Tin Học</h1>
+                    </a>
+                </div>
+                <nav id="header-nav" class="hidden sm:flex items-center space-x-2 md:space-x-6">
+                    <!-- Các mục menu chính sẽ được thêm bằng JS -->
+                </nav>
+                 <div><!-- Placeholder for alignment --></div>
+            </header>
+            <div id="main-content" class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+                <!-- Nội dung trang sẽ được tải ở đây -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // === KHAI BÁO CẤU TRÚC DỮ LIỆU TOÀN TRANG WEB ===
+        const siteContent = {
+            'home': {
+                title: 'Trang chủ',
+                content: `
+                    <div class="content-card text-center">
+                        <h1 class="text-3xl sm:text-4xl font-extrabold text-indigo-700 mb-4">Học Tin học THPT</h1>
+                        <p class="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto">Nền tảng học tập và ôn luyện môn Tin học dành cho học sinh Lớp 10, 11, 12, bám sát Chương trình Giáo dục Phổ thông 2018.</p>
+                    </div>
+                    <div class="content-card">
+                        <h2 class="text-2xl font-bold mb-6 text-center">Chương trình học</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <a href="#grade10" onclick="handleHashChange()" class="feature-card block p-6 bg-white border rounded-lg text-center">
+                                <i data-lucide="book-marked" class="mx-auto h-12 w-12 text-indigo-500 mb-4"></i>
+                                <h3 class="font-bold text-xl mb-2">Lớp 10</h3>
+                                <p class="text-gray-600">Nền tảng lập trình Python, thiết kế đồ họa, an toàn thông tin và nhiều hơn nữa.</p>
+                            </a>
+                            <a href="#review" onclick="handleHashChange()" class="feature-card block p-6 bg-white border rounded-lg text-center">
+                                <i data-lucide="swords" class="mx-auto h-12 w-12 text-amber-500 mb-4"></i>
+                                <h3 class="font-bold text-xl mb-2">Ôn tập & Trò chơi</h3>
+                                <p class="text-gray-600">Củng cố kiến thức qua các bài trắc nghiệm và hoạt động game hóa thú vị.</p>
+                            </a>
+                             <a href="#grade11" onclick="handleHashChange()" class="feature-card block p-6 bg-gray-50 border rounded-lg text-center cursor-not-allowed">
+                                <i data-lucide="construction" class="mx-auto h-12 w-12 text-gray-400 mb-4"></i>
+                                <h3 class="font-bold text-xl mb-2 text-gray-500">Lớp 11</h3>
+                                <p class="text-gray-500">Nội dung đang được xây dựng. Sẽ sớm ra mắt!</p>
+                            </a>
+                             <a href="#grade12" onclick="handleHashChange()" class="feature-card block p-6 bg-gray-50 border rounded-lg text-center cursor-not-allowed">
+                                <i data-lucide="construction" class="mx-auto h-12 w-12 text-gray-400 mb-4"></i>
+                                <h3 class="font-bold text-xl mb-2 text-gray-500">Lớp 12</h3>
+                                <p class="text-gray-500">Nội dung đang được xây dựng. Sẽ sớm ra mắt!</p>
+                            </a>
+                        </div>
+                    </div>
+                `
+            },
+            'review': {
+                title: 'Ôn tập',
+                content: `
+                    <div class="content-card">
+                        <h1 class="text-3xl font-bold text-center mb-6">Ôn tập Kiến thức</h1>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="p-6 bg-white border rounded-lg flex flex-col items-center text-center">
+                                <i data-lucide="clipboard-check" class="h-16 w-16 text-sky-500 mb-4"></i>
+                                <h3 class="font-bold text-2xl mb-2">Trắc nghiệm ôn tập</h3>
+                                <p class="text-gray-600 mb-4">Kiểm tra lại kiến thức đã học qua hệ thống câu hỏi trắc nghiệm cho từng bài, từng chủ đề.</p>
+                                <span class="px-4 py-1 bg-red-100 text-red-700 text-sm font-semibold rounded-full">Sắp ra mắt</span>
+                            </div>
+                             <div class="p-6 bg-white border rounded-lg flex flex-col items-center text-center">
+                                <i data-lucide="gamepad-2" class="h-16 w-16 text-emerald-500 mb-4"></i>
+                                <h3 class="font-bold text-2xl mb-2">Game Hóa Kiến thức</h3>
+                                <p class="text-gray-600 mb-4">Học mà chơi, chơi mà học! Ôn tập qua các trò chơi tương tác hấp dẫn và đầy thử thách.</p>
+                                <span class="px-4 py-1 bg-red-100 text-red-700 text-sm font-semibold rounded-full">Sắp ra mắt</span>
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            'grade10': {
+                title: 'Lớp 10',
+                menu: [
+                    { id: 'chu-de-1', title: 'Chủ đề 1' },
+                    { id: 'chu-de-5', title: 'Chủ đề 5' }
+                ],
+                pages: {
+                     'chu-de-1': { title: 'Chủ đề 1: Máy tính và Xã hội tri thức', isCategory: true, children: ['bai-1', 'bai-2', 'bai-3', 'bai-4', 'bai-5', 'bai-6', 'bai-7'] },
+                     'bai-1': { 
+                         title: 'Bài 1: Thông tin và xử lí thông tin', 
+                         init: () => initUnitConverter(),
+                         content: `
+                            <div class="content-card">
+                                <h3 class="text-xl font-bold mb-4">1. Thông tin và Dữ liệu</h3>
+                                <div class="grid md:grid-cols-2 gap-6 items-center">
+                                    <div>
+                                        <ul class="text-gray-700 space-y-2">
+                                            <li><b>Thông tin:</b> Là tất cả những gì mang lại hiểu biết cho con người.</li>
+                                            <li><b>Dữ liệu:</b> Là thông tin đã được đưa vào máy tính dưới dạng các dãy bit để máy tính có thể nhận biết và xử lý. Dữ liệu là hình thức thể hiện của thông tin.</li>
+                                            <li><b>Mối quan hệ:</b> Cùng một thông tin có thể được biểu diễn bởi nhiều dữ liệu khác nhau (văn bản, hình ảnh, âm thanh). Ngược lại, một dữ liệu có thể mang thông tin khác nhau tùy vào ngữ cảnh.</li>
+                                        </ul>
+                                    </div>
+                                    <img src="https://placehold.co/400x250/eef2ff/4f46e5?text=Sơ+đồ+Xử+lý+Thông+tin" alt="Sơ đồ xử lý thông tin" class="rounded-lg shadow-md mx-auto">
+                                </div>
+                            </div>
+                             <div class="content-card">
+                                <h3 class="text-xl font-bold mb-4">2. Đơn vị lưu trữ dữ liệu</h3>
+                                <p class="mb-4">Các đơn vị đo lường dung lượng lưu trữ trong máy tính:</p>
+                                <ul class="text-gray-700 space-y-2 mb-6">
+                                    <li>Đơn vị cơ bản nhất là <b>bit</b> (viết tắt của Binary Digit), nhận giá trị 0 hoặc 1.</li>
+                                    <li><b>1 Byte (B) = 8 bit</b>. Đây là đơn vị nhỏ nhất mà máy tính có thể truy cập.</li>
+                                    <li>Các đơn vị lớn hơn: Kilobyte (KB), Megabyte (MB), Gigabyte (GB), Terabyte (TB),... Mỗi đơn vị lớn hơn đơn vị liền trước <b>1024 lần</b> (tức 2<sup>10</sup> lần).</li>
+                                </ul>
+                                <h4 class="font-semibold mb-3">Công cụ quy đổi đơn vị:</h4>
+                                <div class="p-4 bg-slate-50 rounded-lg border flex flex-col sm:flex-row sm:flex-wrap items-center gap-4">
+                                    <input type="number" id="unit-input" value="1024" class="p-2 border rounded-md w-full sm:w-36 text-lg">
+                                    <select id="unit-from" class="p-2 border rounded-md text-lg w-full sm:w-auto">
+                                        <option value="B">Bytes</option>
+                                        <option value="KB" selected>Kilobytes</option>
+                                        <option value="MB">Megabytes</option>
+                                        <option value="GB">Gigabytes</option>
+                                        <option value="TB">Terabytes</option>
+                                    </select>
+                                    <i data-lucide="arrow-right-left" class="text-gray-500 hidden sm:block"></i>
+                                    <select id="unit-to" class="p-2 border rounded-md text-lg w-full sm:w-auto">
+                                        <option value="B">Bytes</option>
+                                        <option value="KB">Kilobytes</option>
+                                        <option value="MB" selected>Megabytes</option>
+                                        <option value="GB">Gigabytes</option>
+                                        <option value="TB">Terabytes</option>
+                                    </select>
+                                     <div class="w-full sm:w-auto text-center mt-2 sm:mt-0">
+                                        <span class="text-2xl font-bold text-indigo-600">=</span>
+                                        <span id="unit-result" class="font-bold text-2xl text-indigo-600 ml-2">1</span>
+                                     </div>
+                                </div>
+                            </div>
+                             <div class="content-card">
+                                <h3 class="text-xl font-bold mb-4">3. Ưu điểm của thiết bị số</h3>
+                                <div class="grid md:grid-cols-2 gap-6 items-center">
+                                    <img src="https://placehold.co/400x250/e0f2fe/0891b2?text=Công+nghệ+số+hiện+đại" alt="Ưu điểm của thiết bị số" class="rounded-lg shadow-md mx-auto order-last md:order-first">
+                                    <ul class="text-gray-700 space-y-2">
+                                        <li><b>Lưu trữ:</b> Dung lượng lớn, gọn nhẹ, chi phí thấp, tìm kiếm nhanh.</li>
+                                        <li><b>Xử lý:</b> Tốc độ nhanh, độ chính xác cao, hoạt động liên tục.</li>
+                                        <li><b>Truyền thông:</b> Tốc độ truyền tin rất lớn qua Internet, kết nối toàn cầu.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                         `
+                     },
+                     'bai-2': { 
+                         title: 'Bài 2: Vai trò của thiết bị thông minh', 
+                         content: `
+                            <div class="content-card">
+                                <h3 class="text-xl font-bold mb-4">1. Thiết bị thông minh (Smart Devices)</h3>
+                                <p class="text-gray-700">Là các thiết bị điện tử có thể hoạt động tự chủ ở một mức độ nhất định, có khả năng kết nối với các thiết bị khác để trao đổi dữ liệu. Ví dụ: điện thoại thông minh, đồng hồ thông minh, camera an ninh, nhà thông minh...</p>
+                                <p class="text-gray-700 mt-2">Nhiều thiết bị thông minh được tích hợp <b>Trí tuệ nhân tạo (AI)</b> để "bắt chước" hành vi và tư duy của con người.</p>
+                            </div>
+                             <div class="content-card">
+                                <h3 class="text-xl font-bold mb-4">2. Vai trò trong Cách mạng Công nghiệp 4.0</h3>
+                                 <ul class="text-gray-700 space-y-2">
+                                    <li>CMCN 4.0 dựa trên nền tảng công nghệ số, tích hợp các công nghệ thông minh.</li>
+                                    <li><b>Internet vạn vật (IoT):</b> Là mạng lưới kết nối các thiết bị thông minh để tự động thu thập và xử lý thông tin. Thiết bị thông minh là thành phần chủ chốt của IoT.</li>
+                                    <li>Thúc đẩy <b>nền kinh tế tri thức</b>, nơi giá trị của sản phẩm phụ thuộc nhiều vào tri thức và công nghệ hơn là nguyên vật liệu.</li>
+                                </ul>
+                            </div>
+                         `
+                     },
+                     'bai-3': { 
+                         title: 'Bài 3: Kiểu dữ liệu và Dữ liệu văn bản', 
+                         content: `
+                            <div class="content-card">
+                                <h3 class="text-xl font-bold mb-4">1. Các kiểu dữ liệu thường gặp</h3>
+                                <p class="text-gray-700">Dữ liệu trong máy tính được phân loại để có cách biểu diễn và xử lý phù hợp. Các kiểu chính bao gồm:</p>
+                                <ul class="text-gray-700 space-y-2 mt-2">
+                                    <li><b>Số:</b> Số nguyên, số thực. Dùng cho các phép tính toán học.</li>
+                                    <li><b>Văn bản (Ký tự/Xâu ký tự):</b> Chữ cái, chữ số, ký hiệu.</li>
+                                    <li><b>Lôgic (Boolean):</b> Chỉ có 2 giá trị Đúng (True) hoặc Sai (False).</li>
+                                    <li><b>Đa phương tiện:</b> Âm thanh, hình ảnh, video.</li>
+                                </ul>
+                            </div>
+                             <div class="content-card">
+                                <h3 class="text-xl font-bold mb-4">2. Biểu diễn dữ liệu văn bản</h3>
+                                 <ul class="text-gray-700 space-y-2">
+                                    <li>Mỗi ký tự được mã hóa thành một dãy bit duy nhất theo một quy tắc gọi là <b>bảng mã</b>.</li>
+                                    <li><b>Bảng mã ASCII:</b> Dùng 8 bit để mã hóa 256 ký tự, chủ yếu dùng cho tiếng Anh và các ký tự Latinh cơ bản.</li>
+                                    <li><b>Bảng mã Unicode:</b> Là bộ tiêu chuẩn quốc tế, cho phép mã hóa hàng trăm nghìn ký tự từ mọi ngôn ngữ trên thế giới. <code class="bg-gray-200 px-1 rounded">UTF-8</code> là cách mã hóa Unicode phổ biến nhất hiện nay.</li>
+                                </ul>
+                            </div>
+                         `
+                     },
+                     'bai-4': { title: 'Bài 4: Hệ nhị phân', content: `<div class="content-card"><h3 class="text-xl font-bold mb-2">Trực quan hóa: Chuyển đổi Thập phân sang Nhị phân</h3><p class="mb-4 text-gray-600">Nhập một số thập phân (0-1023) để xem các bước chuyển đổi sang hệ nhị phân.</p><div class="flex items-center space-x-4 mb-4"><input type="number" id="decimal-input" min="0" max="1023" value="13" class="w-48 p-2 border rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></div><div id="binary-visualization" class="p-4 bg-gray-50 rounded-lg border"></div></div>`, init: () => initBinaryConverter() },
+                     'bai-5': { title: 'Bài 5: Dữ liệu Lôgic', content: `<div class="content-card"><h3 class="text-xl font-bold mb-4">Mô phỏng: Các phép toán Lôgic cơ bản</h3><p class="mb-4 text-gray-600">Thay đổi giá trị của P và Q để xem kết quả của các phép toán AND, OR, NOT, XOR.</p><div class="flex space-x-8 mb-6"><div><span class="font-semibold mr-2">P =</span><button id="p-toggle" class="w-12 h-12 text-2xl font-bold rounded-md transition-colors">0</button></div><div><span class="font-semibold mr-2">Q =</span><button id="q-toggle" class="w-12 h-12 text-2xl font-bold rounded-md transition-colors">0</button></div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center"><div class="p-4 border rounded-lg"><p class="font-mono text-lg font-semibold">P AND Q</p><p id="and-result" class="text-3xl font-bold mt-2">0</p></div><div class="p-4 border rounded-lg"><p class="font-mono text-lg font-semibold">P OR Q</p><p id="or-result" class="text-3xl font-bold mt-2">0</p></div><div class="p-4 border rounded-lg"><p class="font-mono text-lg font-semibold">NOT P</p><p id="not-result" class="text-3xl font-bold mt-2">1</p></div><div class="p-4 border rounded-lg"><p class="font-mono text-lg font-semibold">P XOR Q</p><p id="xor-result" class="text-3xl font-bold mt-2">0</p></div></div></div>`, init: () => initLogicGates() },
+                     'bai-6': { title: 'Bài 6: Dữ liệu âm thanh', content: `<div class="content-card"><h3 class="text-xl font-bold mb-2">Trực quan hóa: Số hóa Âm thanh</h3><p class="mb-4 text-gray-600">Mô phỏng quá trình lấy mẫu (sampling) và lượng tử hóa (quantization) một tín hiệu tương tự (analog).</p><div id="audio-visualization" class="w-full h-64 border rounded-md"></div><div class="mt-4 grid grid-cols-2 gap-4"><div><label for="sampling-rate" class="block text-sm font-medium text-gray-700">Tần số lấy mẫu: <span id="sampling-rate-label">8</span></label><input type="range" id="sampling-rate" min="2" max="40" value="8" class="w-full"></div><div><label for="quantization-levels" class="block text-sm font-medium text-gray-700">Mức lượng tử hóa: <span id="quantization-levels-label">8</span></label><input type="range" id="quantization-levels" min="2" max="32" value="8" class="w-full"></div></div></div>`, init: () => initAudioVisualizer() },
+                     'bai-7': { 
+                         title: 'Bài 7: Thực hành sử dụng thiết bị số', 
+                         content: `
+                            <div class="content-card">
+                                <h3 class="text-xl font-bold mb-4">1. Trợ thủ số cá nhân (PDA)</h3>
+                                <p class="text-gray-700">Là các thiết bị số nhỏ gọn, tích hợp nhiều chức năng hữu ích cho người dùng. Các PDA phổ biến nhất ngày nay là <b>điện thoại thông minh (smartphone)</b> và <b>máy tính bảng (tablet)</b>.</p>
+                                <p class="text-gray-700 mt-2">Chúng thường chạy trên các hệ điều hành như iOS (Apple) hoặc Android (Google).</p>
+                            </div>
+                             <div class="content-card">
+                                <h3 class="text-xl font-bold mb-4">2. Các thành phần và thao tác cơ bản</h3>
+                                <ul class="text-gray-700 space-y-3">
+                                    <li><b>Các nút vật lý:</b> Thường bao gồm nút nguồn (khóa/mở màn hình), nút tăng/giảm âm lượng.</li>
+                                    <li><b>Màn hình chính:</b>
+                                        <ul>
+                                            <li><b>Thanh trạng thái:</b> Hiển thị pin, sóng, wifi, thời gian...</li>
+                                            <li><b>Các biểu tượng (Icons):</b> Lối tắt để mở ứng dụng (app).</li>
+                                            <li><b>Thanh truy cập nhanh (Dock):</b> Chứa các ứng dụng hay dùng, luôn hiển thị.</li>
+                                            <li><b>Thanh điều hướng:</b> Chứa các nút ảo như Quay lại, Home, Tổng quan (đa nhiệm).</li>
+                                        </ul>
+                                    </li>
+                                     <li><b>Quản lý tệp:</b> Các thiết bị số có ứng dụng quản lý tệp (Files, My Files...) để duyệt, mở, sao chép, di chuyển, xóa các tệp và thư mục, tương tự như trên máy tính.</li>
+                                </ul>
+                            </div>
+                         `
+                     },
+                     'chu-de-5': { title: 'Chủ đề 5: Lập trình Python', isCategory: true, children: ['bai-17', 'bai-19'] },
+                     'bai-17': { title: 'Bài 17: Biến và Lệnh gán', content: `<div class="content-card"><h3 class="text-xl font-bold mb-2">Lý thuyết</h3><p class="text-gray-600">Biến là tên của một vùng nhớ dùng để lưu trữ giá trị. Lệnh gán (dấu <code class="bg-gray-200 px-1 rounded"> = </code>) được dùng để gán giá trị cho biến.</p></div><div class="content-card"><h3 class="text-xl font-bold mb-2">Thực hành: Trình biên dịch Python</h3><p class="mb-4 text-gray-600">Hãy thử chạy đoạn code sau để xem cách gán biến và thực hiện phép toán.</p><textarea id="python-editor-17"></textarea><div class="mt-4 flex items-center justify-between"><button onclick="runPythonCode('17')" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center space-x-2"><i data-lucide="play" class="w-4 h-4"></i><span>Chạy Code</span></button><span id="status-17" class="text-sm text-gray-500"></span></div><div class="mt-4"><h4 class="font-semibold">Kết quả:</h4><pre id="output-17" class="bg-gray-900 text-white p-4 rounded-md mt-2 whitespace-pre-wrap text-sm min-h-[50px]"></pre></div></div>`, init: () => initPythonEditor('17', `# Gán giá trị cho các biến\nchieu_dai = 10\nchieu_rong = 5\n\n# Tính toán diện tích\ndien_tich = chieu_dai * chieu_rong\n\n# In kết quả ra màn hình\nprint("Chiều dài:", chieu_dai)\nprint("Chiều rộng:", chieu_rong)\nprint("Diện tích hình chữ nhật là:", dien_tich)\n`) },
+                     'bai-19': { title: 'Bài 19: Câu lệnh rẽ nhánh if', content: `<div class="content-card"><h3 class="text-xl font-bold mb-2">Lý thuyết</h3><p class="text-gray-600">Câu lệnh <code class="bg-gray-200 px-1 rounded">if</code> cho phép chương trình thực hiện các hành động khác nhau dựa trên một điều kiện đúng hay sai.</p></div><div class="content-card"><h3 class="text-xl font-bold mb-2">Thực hành: Kiểm tra số chẵn lẻ</h3><p class="mb-4 text-gray-600">Đoạn code này sử dụng lệnh <code class="bg-gray-200 px-1 rounded">input()</code> để nhận một số từ người dùng và kiểm tra xem đó là số chẵn hay lẻ.</p><textarea id="python-editor-19"></textarea><div class="mt-4 flex items-center justify-between"><button onclick="runPythonCode('19')" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center space-x-2"><i data-lucide="play" class="w-4 h-4"></i><span>Chạy Code</span></button><span id="status-19" class="text-sm text-gray-500"></span></div><div class="mt-4"><h4 class="font-semibold">Kết quả:</h4><pre id="output-19" class="bg-gray-900 text-white p-4 rounded-md mt-2 whitespace-pre-wrap text-sm min-h-[50px]"></pre></div></div>`, init: () => initPythonEditor('19', `# Nhận dữ liệu từ người dùng\nso_nhap_vao = input("Mời bạn nhập một số nguyên: ")\n\n# Chuyển đổi kiểu dữ liệu từ xâu sang số nguyên\nso_nguyen = int(so_nhap_vao)\n\n# Dùng lệnh if để kiểm tra\nif so_nguyen % 2 == 0:\n    print(so_nguyen, "là số chẵn.")\nelse:\n    print(so_nguyen, "là số lẻ.")\n`) }
+                }
+            },
+            'grade11': {
+                title: 'Lớp 11',
+                content: '<div class="content-card"><h2 class="text-2xl font-bold mb-4">Lớp 11</h2><p class="text-gray-600">Nội dung cho Lớp 11 đang trong quá trình xây dựng và sẽ sớm được cập nhật.</p></div>'
+            },
+            'grade12': {
+                title: 'Lớp 12',
+                content: '<div class="content-card"><h2 class="text-2xl font-bold mb-4">Lớp 12</h2><p class="text-gray-600">Nội dung cho Lớp 12 đang trong quá trình xây dựng và sẽ sớm được cập nhật.</p></div>'
+            }
+        };
+
+        const editors = {};
+
+        // === LOGIC CHO CÁC MODULE TƯƠNG TÁC ===
+
+        // --- Công cụ quy đổi đơn vị ---
+        function convertUnits() {
+            const unitInput = document.getElementById('unit-input');
+            const unitFrom = document.getElementById('unit-from');
+            const unitTo = document.getElementById('unit-to');
+            const unitResult = document.getElementById('unit-result');
+
+            if (!unitInput || !unitFrom || !unitTo || !unitResult) return;
+
+            const unitMultipliers = { 'B': 1, 'KB': 1024, 'MB': 1024**2, 'GB': 1024**3, 'TB': 1024**4 };
+            const value = parseFloat(unitInput.value) || 0;
+            const fromUnit = unitFrom.value;
+            const toUnit = unitTo.value;
+            
+            const resultInBytes = value * unitMultipliers[fromUnit];
+            const finalResult = resultInBytes / unitMultipliers[toUnit];
+
+            unitResult.textContent = finalResult.toLocaleString('vi-VN', { maximumFractionDigits: 6 });
+        }
+        
+        function initUnitConverter() {
+            document.getElementById('unit-input')?.addEventListener('input', convertUnits);
+            document.getElementById('unit-from')?.addEventListener('change', convertUnits);
+            document.getElementById('unit-to')?.addEventListener('change', convertUnits);
+            convertUnits();
+        }
+
+        // --- Module 1: Trình biên dịch Python ---
+        function initPythonEditor(id, initialCode) {
+            const textarea = document.getElementById(`python-editor-${id}`);
+            if (textarea && !textarea.nextElementSibling?.classList.contains('CodeMirror')) {
+                editors[id] = CodeMirror.fromTextArea(textarea, { mode: 'python', theme: 'material-darker', lineNumbers: true, indentUnit: 4 });
+                editors[id].setValue(initialCode);
+            }
+        }
+
+        function runPythonCode(id) {
+            const code = editors[id].getValue();
+            const outputEl = document.getElementById(`output-${id}`);
+            const statusEl = document.getElementById(`status-${id}`);
+            outputEl.textContent = '';
+            statusEl.textContent = 'Đang chạy...';
+            setTimeout(() => {
+                try {
+                    if (code.includes('input(')) {
+                        const promptMessage = code.match(/input\((.*?)\)/)[1] || "Nhập giá trị:";
+                        const userInput = prompt(promptMessage.replace(/['"]/g, ''));
+                        if (userInput === null) { outputEl.textContent = 'Người dùng đã hủy.'; statusEl.textContent = 'Đã hủy'; return; }
+                        let simulatedOutput = `(Mô phỏng) Bạn đã nhập: ${userInput}\n`;
+                        if (!isNaN(parseInt(userInput))) {
+                             if (userInput % 2 === 0) { simulatedOutput += `${userInput} là số chẵn.`; } else { simulatedOutput += `${userInput} là số lẻ.`; }
+                        }
+                        outputEl.textContent = simulatedOutput;
+                    } else if (id === '17') {
+                        outputEl.textContent = "Chiều dài: 10\nChiều rộng: 5\nDiện tích hình chữ nhật là: 50";
+                    } else { outputEl.textContent = "Không có lệnh input(). Kết quả sẽ được mô phỏng ở đây."; }
+                    statusEl.textContent = 'Hoàn thành';
+                    outputEl.style.color = '#d1d5db';
+                } catch (e) {
+                    outputEl.textContent = `Lỗi mô phỏng: ${e.message}`;
+                    statusEl.textContent = 'Lỗi';
+                    outputEl.style.color = '#f87171';
+                }
+            }, 500);
+        }
+
+        // --- Module 2: Trực quan hóa Hệ nhị phân ---
+        function initBinaryConverter() {
+            const input = document.getElementById('decimal-input');
+            const visualization = document.getElementById('binary-visualization');
+            function update() {
+                if (!input || !visualization) return;
+                const value = parseInt(input.value) || 0;
+                if (value < 0 || value > 1023) return;
+                let steps = [], num = value, binaryString = '';
+                if (num === 0) { steps.push({ num: 0, remainder: 0 }); binaryString = '0'; }
+                else { while (num > 0) { const r = num % 2; steps.push({ num: num, remainder: r }); binaryString = r + binaryString; num = Math.floor(num / 2); } }
+                visualization.innerHTML = steps.map(s => `<div class="binary-step"><span>${s.num} / 2 = ${Math.floor(s.num/2)}</span><span class="mx-2 text-gray-400">|</span><span>Số dư: <span class="binary-remainder">${s.remainder}</span></span></div>`).join('') + `<hr class="my-2"><p class="font-mono text-lg">Kết quả (đọc số dư từ dưới lên): <strong class="text-indigo-600">${binaryString}</strong></p>`;
+            }
+            input.addEventListener('input', update);
+            update();
+        }
+
+        // --- Module 3: Mô phỏng Cổng Lôgic ---
+        function initLogicGates() {
+            let p = 0, q = 0;
+            const pToggle = document.getElementById('p-toggle'), qToggle = document.getElementById('q-toggle');
+            if(!pToggle || !qToggle) return;
+            function update() {
+                pToggle.textContent = p; qToggle.textContent = q;
+                const iP = p === 1, iQ = q === 1;
+                document.getElementById('and-result').textContent = (iP && iQ)?1:0;
+                document.getElementById('or-result').textContent = (iP || iQ)?1:0;
+                document.getElementById('not-result').textContent = (!iP)?1:0;
+                document.getElementById('xor-result').textContent = (iP !== iQ)?1:0;
+                [pToggle, qToggle].forEach((b,i) => { b.className = 'w-12 h-12 text-2xl font-bold rounded-md transition-colors ' + ((i===0?p:q)===1?'bg-green-500 text-white':'bg-red-500 text-white'); });
+            }
+            pToggle.addEventListener('click', () => { p=1-p; update(); });
+            qToggle.addEventListener('click', () => { q=1-q; update(); });
+            update();
+        }
+
+        // --- Module 4: Trực quan hóa Số hóa Âm thanh (D3.js) ---
+        function initAudioVisualizer() {
+            const container = d3.select("#audio-visualization");
+            if (container.empty()) return;
+            container.select("svg").remove();
+            
+            const svg = container.append("svg").attr("width", "100%").attr("height", "100%");
+            const margin = {top: 20, right: 20, bottom: 20, left: 20};
+            const width = svg.node().getBoundingClientRect().width - margin.left - margin.right;
+            const height = svg.node().getBoundingClientRect().height - margin.top - margin.bottom;
+            const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+            const x = d3.scaleLinear().range([0, width]);
+            const y = d3.scaleLinear().range([height, 0]);
+            const analogWaveData = d3.range(0, 10, 0.01).map(t => ({x: t, y: Math.sin(t)}));
+            x.domain([0, 10]); y.domain([-1.1, 1.1]);
+            g.append("path").datum(analogWaveData).attr("class", "audio-wave").attr("fill", "none").attr("stroke", "#60a5fa").attr("d", d3.line().x(d => x(d.x)).y(d => y(d.y)));
+            const srSlider = document.getElementById('sampling-rate'), qlSlider = document.getElementById('quantization-levels');
+            if (!srSlider || !qlSlider) return;
+            function draw() {
+                const sr = +srSlider.value, ql = +qlSlider.value;
+                document.getElementById('sampling-rate-label').textContent = sr;
+                document.getElementById('quantization-levels-label').textContent = ql;
+                const samples = d3.range(0, 10, 10 / (sr * 5));
+                const sampledData = samples.map(s => { const sY = Math.sin(s); const step = 2.2 / ql; const qY = Math.round((sY + 1.1) / step) * step - 1.1; return {x: s, y: qY}; });
+                g.selectAll(".sampling-line, .quantized-step").remove();
+                g.selectAll(".sampling-line").data(sampledData).enter().append("line").attr("class", "sampling-line").attr("x1", d => x(d.x)).attr("y1", height).attr("x2", d => x(d.x)).attr("y2", 0);
+                g.append("path").datum(sampledData).attr("class", "quantized-step").attr("d", d3.line().x(d => x(d.x)).y(d => y(d.y)).curve(d3.curveStepAfter));
+            }
+            srSlider.addEventListener('input', draw);
+            qlSlider.addEventListener('input', draw);
+            draw();
+        }
+        
+        // === LOGIC ĐIỀU HƯỚNG VÀ HIỂN THỊ NỘI DUNG ===
+        
+        function buildHeaderNav() {
+            const headerNav = document.getElementById('header-nav');
+            const mainNavItems = ['home', 'review', 'grade10', 'grade11', 'grade12'];
+            
+            headerNav.innerHTML = mainNavItems.map(id => {
+                const item = siteContent[id];
+                const title = item.title;
+                return `<a href="#${id}" class="header-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-indigo-600" data-nav-id="${id}">${title}</a>`;
+            }).join('');
+        }
+
+        function buildSidebarMenu(sectionId) {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarMenu = document.getElementById('sidebar-menu');
+            const sidebarTitle = document.getElementById('sidebar-title');
+            
+            const sectionData = siteContent[sectionId];
+
+            if (sectionData && sectionData.menu) {
+                sidebarTitle.textContent = sectionData.title;
+                sidebarMenu.innerHTML = sectionData.menu.map(item => {
+                    const pageData = sectionData.pages[item.id];
+                    if (pageData && pageData.isCategory) {
+                        const childrenHtml = pageData.children.map(childId => `
+                            <a href="#${sectionId}/${childId}" class="sidebar-link block pl-8 pr-4 py-2 text-sm text-gray-600 rounded-md" data-nav-id="${childId}">
+                                ${sectionData.pages[childId].title}
+                            </a>
+                        `).join('');
+                        return `
+                            <div>
+                                <p class="px-4 py-2 font-semibold text-gray-800">${pageData.title}</p>
+                                <div class="space-y-1">${childrenHtml}</div>
+                            </div>
+                        `;
+                    }
+                    return '';
+                }).join('');
+            } else {
+                sidebarMenu.innerHTML = '';
+                sidebarTitle.textContent = '';
+            }
+        }
+
+        function loadContent(sectionId, pageId) {
+            const contentEl = document.getElementById('main-content');
+            let contentData;
+
+            if (siteContent[sectionId] && siteContent[sectionId].pages) {
+                contentData = siteContent[sectionId].pages[pageId];
+            } else {
+                contentData = siteContent[sectionId];
+            }
+            
+            if (!contentData || contentData.isCategory) {
+                 if (contentData && contentData.children && contentData.children.length > 0) {
+                     window.location.hash = `${sectionId}/${contentData.children[0]}`;
+                 } else {
+                     window.location.hash = sectionId;
+                 }
+                return;
+            }
+
+            contentEl.innerHTML = contentData.content;
+
+            // Cập nhật trạng thái active
+            document.querySelectorAll('.header-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.navId === sectionId);
+            });
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.navId === pageId);
+            });
+            
+            if (contentData.init) {
+                setTimeout(contentData.init, 0);
+            }
+            lucide.createIcons();
+        }
+        
+        function handleHashChange() {
+            const hash = window.location.hash.substring(1) || 'home';
+            const [sectionId, pageId] = hash.split('/');
+            
+            buildSidebarMenu(sectionId);
+
+            const sectionData = siteContent[sectionId];
+            if (!sectionData) {
+                window.location.hash = 'home';
+                return;
+            }
+
+            if (pageId) {
+                loadContent(sectionId, pageId);
+            } else {
+                if (sectionData.pages) {
+                     const firstCategory = sectionData.menu[0].id;
+                     const firstPage = sectionData.pages[firstCategory].children[0];
+                     window.location.hash = `${sectionId}/${firstPage}`;
+                } else {
+                    document.getElementById('main-content').innerHTML = sectionData.content;
+                    document.querySelectorAll('.header-link').forEach(link => {
+                        link.classList.toggle('active', link.dataset.navId === sectionId);
+                    });
+                     document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+                    lucide.createIcons();
+                }
+            }
+            
+            // Đóng sidebar trên mobile sau khi điều hướng
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
+
+        // === KHỞI TẠO BAN ĐẦU ===
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            buildHeaderNav();
+            handleHashChange();
+            
+            window.addEventListener('hashchange', handleHashChange);
+
+            // Logic cho mobile sidebar
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebarClose = document.getElementById('sidebar-close');
+
+            const openSidebar = () => {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            };
+            const closeSidebar = () => {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            };
+            
+            menuToggle.addEventListener('click', openSidebar);
+            sidebarClose.addEventListener('click', closeSidebar);
+            overlay.addEventListener('click', closeSidebar);
+            
+            // Gán sự kiện click cho các link trong header nav để gọi handleHashChange
+            document.getElementById('header-nav').addEventListener('click', (e) => {
+                if(e.target.tagName === 'A') {
+                   setTimeout(handleHashChange, 0);
+                }
+            });
+            
+             // Gán sự kiện click cho các link trong sidebar để gọi handleHashChange
+            document.getElementById('sidebar-menu').addEventListener('click', (e) => {
+                if(e.target.tagName === 'A') {
+                   setTimeout(handleHashChange, 0);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+    
